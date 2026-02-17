@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import type { StatusCode } from "hono/utils/http-status";
+import { ZodError } from "zod";
 
 export class AppError extends Error {
   constructor(
@@ -48,6 +49,20 @@ export class InternalServerError extends AppError {
 
 export function errorHandler(err: Error, c: Context) {
   console.error(`[Error] ${err.name}: ${err.message}`);
+
+  if (err instanceof ZodError) {
+    const details = err.issues.map((issue) => ({
+      field: issue.path.map(String).join("."),
+      message: issue.message,
+    }));
+    return c.json(
+      {
+        success: false,
+        error: { code: 400, name: "ValidationError", message: "Validation failed", details },
+      },
+      400,
+    );
+  }
 
   if (err instanceof AppError) {
     return c.json(
