@@ -1,24 +1,30 @@
 import { Hono } from "hono";
-import { AiService } from "./domain/services/ai.service";
+import { connectToDatabase } from "./infrastructure/database/mongo-client";
+import { MongoDbRepository } from "./infrastructure/repositories/mongodb.repository";
+import { MockAiService } from "./domain/services/ai.service";
 import { ConversationService } from "./domain/services/conversation.service";
 import { createConversationController } from "./infrastructure/controllers/conversation.controller";
 import { errorHandler } from "./infrastructure/middleware/error-handler";
-import { MongoDbRepository } from "./infrastructure/repositories/mongodb.repository";
 
-export function createApp() {
+export async function createApp() {
   const app = new Hono();
 
   // Global Error Handler
   app.onError(errorHandler);
 
+  // Database
+  const db = await connectToDatabase();
+
   // Dependency Injection
-  const repository = new MongoDbRepository();
-  const aiService = new AiService();
+  const repository = new MongoDbRepository(db);
+  const aiService = new MockAiService();
   const conversationService = new ConversationService(repository, aiService);
 
   // Routes
-  app.get("/", (c) => c.text("Chat Hono App"));
-  app.route("/conversations", createConversationController(conversationService));
+  app.get("/", (c) =>
+    c.json({ success: true, data: { name: "A.E.G.I.S.", version: "1.0.0" } }),
+  );
+  app.route("/v1/conversations", createConversationController(conversationService));
 
   return app;
 }

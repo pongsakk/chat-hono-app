@@ -3,18 +3,11 @@ import type { StatusCode } from "hono/utils/http-status";
 
 export class AppError extends Error {
   constructor(
-    public statusCode: number,
+    public readonly statusCode: number,
     message: string,
   ) {
     super(message);
     this.name = "AppError";
-  }
-}
-
-export class NotFoundError extends AppError {
-  constructor(message = "Resource not found") {
-    super(404, message);
-    this.name = "NotFoundError";
   }
 }
 
@@ -32,6 +25,20 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class NotFoundError extends AppError {
+  constructor(message = "Resource not found") {
+    super(404, message);
+    this.name = "NotFoundError";
+  }
+}
+
+export class UnprocessableEntityError extends AppError {
+  constructor(message = "Unprocessable entity") {
+    super(422, message);
+    this.name = "UnprocessableEntityError";
+  }
+}
+
 export class InternalServerError extends AppError {
   constructor(message = "Internal server error") {
     super(500, message);
@@ -44,13 +51,19 @@ export function errorHandler(err: Error, c: Context) {
 
   if (err instanceof AppError) {
     return c.json(
-      { error: err.name, message: err.message },
+      {
+        success: false,
+        error: { code: err.statusCode, name: err.name, message: err.message },
+      },
       err.statusCode as StatusCode,
     );
   }
 
   return c.json(
-    { error: "InternalServerError", message: "Something went wrong" },
+    {
+      success: false,
+      error: { code: 500, name: "InternalServerError", message: "Something went wrong" },
+    },
     500,
   );
 }

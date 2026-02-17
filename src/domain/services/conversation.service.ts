@@ -1,18 +1,16 @@
 import type { Conversation } from "../entities/conversation";
 import type { Message } from "../entities/message";
-import type { MongoDbRepository } from "../../infrastructure/repositories/mongodb.repository";
-import { AiService } from "./ai.service";
+import type { IConversationRepository } from "../repositories/conversation.repository";
+import type { IAiService } from "./ai.service";
+import type { PaginatedResponse } from "../dtos/conversation.dto";
 
 export class ConversationService {
-  private repository: MongoDbRepository;
-  private aiService: AiService;
+  constructor(
+    private readonly repository: IConversationRepository,
+    private readonly aiService: IAiService,
+  ) {}
 
-  constructor(repository: MongoDbRepository, aiService: AiService) {
-    this.repository = repository;
-    this.aiService = aiService;
-  }
-
-  async createConversation(title: string): Promise<Conversation> {
+  async create(title: string): Promise<Conversation> {
     const conversation: Conversation = {
       id: crypto.randomUUID(),
       title,
@@ -20,10 +18,26 @@ export class ConversationService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    return this.repository.saveConversation(conversation);
+    return this.repository.save(conversation);
   }
 
-  async sendMessage(conversationId: string, content: string): Promise<Message> {
+  async list(offset: number, limit: number): Promise<PaginatedResponse<Conversation>> {
+    const [data, total] = await Promise.all([
+      this.repository.findAll(offset, limit),
+      this.repository.count(),
+    ]);
+    return { data, pagination: { offset, limit, total } };
+  }
+
+  async getById(id: string): Promise<Conversation | null> {
+    return this.repository.findById(id);
+  }
+
+  async rename(id: string, title: string): Promise<Conversation | null> {
+    return this.repository.updateTitle(id, title);
+  }
+
+  async sendMessage(conversationId: string, content: string): Promise<{ userMessage: Message; assistantMessage: Message }> {
     const userMessage: Message = {
       id: crypto.randomUUID(),
       conversationId,
@@ -31,7 +45,6 @@ export class ConversationService {
       content,
       createdAt: new Date(),
     };
-
     await this.repository.addMessage(userMessage);
 
     const aiReply = await this.aiService.generateReply(content);
@@ -42,16 +55,8 @@ export class ConversationService {
       content: aiReply,
       createdAt: new Date(),
     };
-
     await this.repository.addMessage(assistantMessage);
-    return assistantMessage;
-  }
 
-  async getConversation(id: string): Promise<Conversation | null> {
-    return this.repository.findConversation(id);
-  }
-
-  async listConversations(): Promise<Conversation[]> {
-    return this.repository.findAllConversations();
+    return { userMessage, assistantMessage };
   }
 }

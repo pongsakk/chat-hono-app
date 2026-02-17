@@ -1,28 +1,55 @@
+import type { Collection, Db } from "mongodb";
 import type { Conversation } from "../../domain/entities/conversation";
 import type { Message } from "../../domain/entities/message";
+import type { IConversationRepository } from "../../domain/repositories/conversation.repository";
 
-export class MongoDbRepository {
-  // In-memory store (mock) - เปลี่ยนเป็น MongoDB จริงทีหลัง
-  private conversations: Map<string, Conversation> = new Map();
+export class MongoDbRepository implements IConversationRepository {
+  private conversations: Collection<Conversation>;
 
-  async saveConversation(conversation: Conversation): Promise<Conversation> {
-    this.conversations.set(conversation.id, conversation);
+  constructor(db: Db) {
+    this.conversations = db.collection<Conversation>("conversations");
+  }
+
+  async save(conversation: Conversation): Promise<Conversation> {
+    await this.conversations.insertOne({ ...conversation });
     return conversation;
   }
 
-  async findConversation(id: string): Promise<Conversation | null> {
-    return this.conversations.get(id) || null;
+  async findById(id: string): Promise<Conversation | null> {
+    return this.conversations.findOne({ id }, { projection: { _id: 0 } });
   }
 
-  async findAllConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values());
+  async findAll(offset: number, limit: number): Promise<Conversation[]> {
+    return this.conversations
+      .find({}, { projection: { _id: 0, messages: 0 } })
+      .sort({ updatedAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray();
   }
 
-  async addMessage(message: Message): Promise<void> {
-    const conversation = this.conversations.get(message.conversationId);
-    if (conversation) {
-      conversation.messages.push(message);
-      conversation.updatedAt = new Date();
-    }
+  async count(): Promise<number> {
+    return this.conversations.countDocuments();
+  }
+
+  async updateTitle(id: string, title: string): Promise<Conversation | null> {
+    const result = await this.conversations.findOneAndUpdate(
+      { id },
+      { $set: { title, updatedAt: new Date() } },
+      { returnDocument: "after", projection: { _id: 0 } },
+    );
+    return result ?? null;
+  }
+
+  async addMessage(message: Message): Promise<Conversation | null> {
+    const result = await this.conversations.findOneAndUpdate(
+      { id: message.conversationId },
+      {
+        $push: { messages: message },
+        $set: { updatedAt: new Date() },
+      },
+      { returnDocument: "after", projection: { _id: 0 } },
+    );
+    return result ?? null;
   }
 }

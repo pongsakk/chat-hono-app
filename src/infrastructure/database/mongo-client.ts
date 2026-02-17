@@ -1,18 +1,31 @@
-// Placeholder สำหรับการเชื่อมต่อ MongoDB
-// ใช้ตัวแปร environment MONGO_URI
+import { MongoClient, type Db } from "mongodb";
 
-let db: any = null;
+let client: MongoClient | null = null;
+let db: Db | null = null;
 
-export async function connectToDatabase(uri?: string) {
-  const mongoUri = uri || process.env.MONGO_URI || "mongodb://localhost:27017";
-  console.log(`Connecting to MongoDB at ${mongoUri}...`);
-  // TODO: เชื่อมต่อจริงด้วย mongodb driver
-  // const client = new MongoClient(mongoUri);
-  // await client.connect();
-  // db = client.db("chat-app");
-  console.log("MongoDB connected (mock)");
+export async function connectToDatabase(uri?: string): Promise<Db> {
+  if (db) return db;
+
+  const mongoUri = uri || process.env.MONGO_URI || "mongodb://localhost:27017/chat-app";
+  client = new MongoClient(mongoUri);
+  await client.connect();
+  db = client.db();
+
+  console.log(`Connected to MongoDB: ${mongoUri}`);
+  return db;
 }
 
-export function getDb() {
+export function getDb(): Db {
+  if (!db) {
+    throw new Error("Database not connected. Call connectToDatabase() first.");
+  }
   return db;
+}
+
+export async function closeDatabase(): Promise<void> {
+  if (client) {
+    await client.close();
+    client = null;
+    db = null;
+  }
 }

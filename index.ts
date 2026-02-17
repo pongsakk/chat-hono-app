@@ -1,6 +1,8 @@
-import { createApp } from './src/main'
+import { createApp } from "./src/main";
 
-const app = createApp()
+const app = await createApp();
 
-// Export เพื่อรันด้วย Bun
-export default app
+export default {
+  port: Number(process.env.PORT) || 3000,
+  fetch: app.fetch,
+};
