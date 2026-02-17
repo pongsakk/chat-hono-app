@@ -1,11 +1,15 @@
 import { Hono } from "hono";
-import { MongoDbRepository } from "./infrastructure/repositories/mongodb.repository";
 import { AiService } from "./domain/services/ai.service";
 import { ConversationService } from "./domain/services/conversation.service";
 import { createConversationController } from "./infrastructure/controllers/conversation.controller";
+import { errorHandler } from "./infrastructure/middleware/error-handler";
+import { MongoDbRepository } from "./infrastructure/repositories/mongodb.repository";
 
 export function createApp() {
   const app = new Hono();
+
+  // Global Error Handler
+  app.onError(errorHandler);
 
   // Dependency Injection
   const repository = new MongoDbRepository();

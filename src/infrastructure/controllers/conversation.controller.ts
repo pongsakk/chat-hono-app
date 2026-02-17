@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { ConversationService } from "../../domain/services/conversation.service";
+import { NotFoundError, BadRequestError } from "../middleware/error-handler";
 
 export function createConversationController(service: ConversationService) {
   const controller = new Hono();
@@ -22,7 +23,7 @@ export function createConversationController(service: ConversationService) {
     const id = c.req.param("id");
     const conversation = await service.getConversation(id);
     if (!conversation) {
-      return c.json({ error: "Conversation not found" }, 404);
+      throw new NotFoundError("Conversation not found");
     }
     return c.json(conversation);
   });
@@ -31,10 +32,16 @@ export function createConversationController(service: ConversationService) {
   controller.post("/:id/messages", async (c) => {
     const id = c.req.param("id");
     const { content } = await c.req.json();
+
+    if (!content) {
+      throw new BadRequestError("Message content is required");
+    }
+
     const conversation = await service.getConversation(id);
     if (!conversation) {
-      return c.json({ error: "Conversation not found" }, 404);
+      throw new NotFoundError("Conversation not found");
     }
+
     const reply = await service.sendMessage(id, content);
     return c.json(reply, 201);
   });
