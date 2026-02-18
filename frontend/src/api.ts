@@ -44,6 +44,10 @@ export async function listConversations(offset = 0, limit = 20) {
   );
 }
 
+export async function getConversation(id: string) {
+  return request<ApiResponse<Conversation>>(`${BASE}/conversations/${id}`);
+}
+
 export async function createConversation(title?: string) {
   return request<ApiResponse<Conversation>>(`${BASE}/conversations`, {
     method: "POST",

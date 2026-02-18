@@ -7,8 +7,8 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   height: 100vh;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  background: #0d0d0d;
+  color: #ececec;
 }
 
 #app {
@@ -18,9 +18,9 @@ body {
 
 /* Sidebar */
 #sidebar {
-  width: 300px;
-  background: #16213e;
-  border-right: 1px solid #2a2a4a;
+  width: 280px;
+  background: #171717;
+  border-right: 1px solid #2f2f2f;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -30,84 +30,95 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #2a2a4a;
+  padding: 14px 16px;
+  border-bottom: 1px solid #2f2f2f;
 }
 
 .sidebar-header h1 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  color: #ececec;
 }
 
 #new-chat-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
-  border: 1px solid #3a3a5a;
+  border: 1px solid #3f3f3f;
   background: transparent;
-  color: #e0e0e0;
-  font-size: 20px;
+  color: #ececec;
+  font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.15s;
 }
 
 #new-chat-btn:hover {
-  background: #2a2a4a;
+  background: #2f2f2f;
 }
 
 #search-input {
-  margin: 12px 16px;
+  margin: 10px 12px;
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid #2a2a4a;
-  background: #0f3460;
-  color: #e0e0e0;
-  font-size: 14px;
+  border: 1px solid #3f3f3f;
+  background: #212121;
+  color: #ececec;
+  font-size: 13px;
   outline: none;
+  transition: border-color 0.15s;
+}
+
+#search-input:focus {
+  border-color: #5a5a5a;
 }
 
 #search-input::placeholder {
-  color: #888;
+  color: #6b6b6b;
 }
 
 #conversation-list {
   list-style: none;
   overflow-y: auto;
   flex: 1;
-  padding: 8px;
+  padding: 6px 8px;
 }
 
 #conversation-list li {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 8px;
   cursor: pointer;
-  margin-bottom: 4px;
-  transition: background 0.2s;
+  margin-bottom: 2px;
+  transition: background 0.15s;
 }
 
 #conversation-list li:hover {
-  background: #1a1a3e;
+  background: #212121;
 }
 
 #conversation-list li.active {
-  background: #0f3460;
+  background: #2f2f2f;
 }
 
 #conversation-list li .conv-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #d1d1d1;
+}
+
+#conversation-list li.active .conv-title {
+  color: #fff;
 }
 
 #conversation-list li .conv-preview {
   font-size: 12px;
-  color: #888;
-  margin-top: 4px;
+  color: #6b6b6b;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -115,7 +126,7 @@ body {
 
 #conversation-list li .conv-time {
   font-size: 11px;
-  color: #666;
+  color: #525252;
   margin-top: 2px;
 }
 
@@ -124,36 +135,38 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #1a1a2e;
+  background: #0d0d0d;
 }
 
 #chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid #2a2a4a;
-  background: #16213e;
+  padding: 14px 24px;
+  border-bottom: 1px solid #2f2f2f;
+  background: #171717;
 }
 
 #chat-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
+  color: #ececec;
 }
 
 #rename-btn {
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 6px;
-  border: 1px solid #3a3a5a;
+  border: 1px solid #3f3f3f;
   background: transparent;
-  color: #e0e0e0;
-  font-size: 13px;
+  color: #a0a0a0;
+  font-size: 12px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.15s;
 }
 
 #rename-btn:hover {
-  background: #2a2a4a;
+  background: #2f2f2f;
+  color: #ececec;
 }
 
 #messages {
@@ -162,81 +175,85 @@ body {
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .message {
   max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 16px;
+  padding: 10px 16px;
+  border-radius: 18px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   word-wrap: break-word;
 }
 
 .message.user {
   align-self: flex-end;
-  background: #0f3460;
+  background: #303030;
+  color: #ececec;
   border-bottom-right-radius: 4px;
 }
 
 .message.assistant {
   align-self: flex-start;
-  background: #2a2a4a;
+  background: #1e1e1e;
+  color: #d1d1d1;
   border-bottom-left-radius: 4px;
+  border: 1px solid #2f2f2f;
 }
 
 .message .msg-time {
-  font-size: 11px;
-  color: #666;
+  font-size: 10px;
+  color: #525252;
   margin-top: 4px;
 }
 
 #message-form {
   display: flex;
   gap: 8px;
-  padding: 16px 24px;
-  border-top: 1px solid #2a2a4a;
-  background: #16213e;
+  padding: 14px 24px;
+  border-top: 1px solid #2f2f2f;
+  background: #171717;
 }
 
 #message-input {
   flex: 1;
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid #2a2a4a;
-  background: #0f3460;
-  color: #e0e0e0;
+  border: 1px solid #3f3f3f;
+  background: #212121;
+  color: #ececec;
   font-size: 14px;
   outline: none;
+  transition: border-color 0.15s;
 }
 
 #message-input::placeholder {
-  color: #888;
+  color: #6b6b6b;
 }
 
 #message-input:focus {
-  border-color: #e94560;
+  border-color: #5a5a5a;
 }
 
 #message-form button {
   padding: 12px 24px;
   border-radius: 12px;
   border: none;
-  background: #e94560;
-  color: white;
+  background: #ececec;
+  color: #0d0d0d;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s;
 }
 
 #message-form button:hover {
-  background: #c73e54;
+  background: #d1d1d1;
 }
 
 #message-form button:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -247,12 +264,12 @@ body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
-  gap: 8px;
+  color: #525252;
+  gap: 6px;
 }
 
 .empty-state .icon {
-  font-size: 48px;
+  font-size: 40px;
   margin-bottom: 8px;
 }
 
@@ -265,9 +282,9 @@ body {
 }
 
 .typing-indicator span {
-  width: 8px;
-  height: 8px;
-  background: #888;
+  width: 7px;
+  height: 7px;
+  background: #525252;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out;
 }
@@ -279,4 +296,22 @@ body {
 @keyframes bounce {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f3f;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #525252;
 }

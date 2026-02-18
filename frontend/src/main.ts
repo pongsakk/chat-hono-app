@@ -1,5 +1,6 @@
 import {
   listConversations,
+  getConversation,
   createConversation,
   sendMessage,
   renameConversation,
@@ -114,11 +115,23 @@ async function selectConversation(id: string) {
 
   if (conv) {
     chatTitle.textContent = conv.title;
-    activeMessages = conv.messages || [];
     renameBtn.hidden = false;
     messageForm.hidden = false;
-    renderMessages();
     renderConversationList(searchInput.value);
+
+    // Fetch full conversation with messages from API
+    try {
+      const res = await getConversation(id);
+      if (res.data) {
+        activeMessages = res.data.messages || [];
+        renderMessages();
+      }
+    } catch (err) {
+      console.error("Failed to load conversation messages", err);
+      activeMessages = [];
+      renderMessages();
+    }
+
     messageInput.focus();
   }
 }

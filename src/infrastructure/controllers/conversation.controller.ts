@@ -25,6 +25,16 @@ export function createConversationController(service: ConversationService) {
     return c.json({ success: true, ...result });
   });
 
+  // GET /v1/conversations/:id — get conversation with messages
+  controller.get("/:id", async (c) => {
+    const id = c.req.param("id");
+    const conversation = await service.getById(id);
+    if (!conversation) {
+      throw new NotFoundError(`Conversation '${id}' not found`);
+    }
+    return c.json({ success: true, data: conversation });
+  });
+
   // POST /v1/conversations — create new conversation
   controller.post("/", async (c) => {
     const { title } = CreateConversationSchema.parse(await c.req.json());
