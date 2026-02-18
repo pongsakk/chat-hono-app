@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { connectToDatabase } from "./infrastructure/database/mongo-client";
-import { MongoDbRepository } from "./infrastructure/repositories/mongodb.repository";
+import { MongoConversationRepository, MongoMessageRepository } from "./infrastructure/repositories/mongodb.repository";
 import { MockAiService } from "./domain/services/ai.service";
 import { ConversationService } from "./domain/services/conversation.service";
 import { createConversationController } from "./infrastructure/controllers/conversation.controller";
@@ -16,9 +16,10 @@ export async function createApp() {
   const db = await connectToDatabase();
 
   // Dependency Injection
-  const repository = new MongoDbRepository(db);
+  const conversationRepo = new MongoConversationRepository(db);
+  const messageRepo = new MongoMessageRepository(db);
   const aiService = new MockAiService();
-  const conversationService = new ConversationService(repository, aiService);
+  const conversationService = new ConversationService(conversationRepo, messageRepo, aiService);
 
   // Routes
   app.get("/", (c) =>

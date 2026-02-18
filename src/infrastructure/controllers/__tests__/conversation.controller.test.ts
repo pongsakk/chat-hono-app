@@ -3,12 +3,12 @@ import { Hono } from "hono";
 import { createConversationController } from "../conversation.controller";
 import { ConversationService } from "../../../domain/services/conversation.service";
 import { errorHandler } from "../../middleware/error-handler";
-import type { IConversationRepository } from "../../../domain/repositories/conversation.repository";
+import type { IConversationRepository, IMessageRepository } from "../../../domain/repositories/conversation.repository";
 import type { IAiService } from "../../../domain/services/ai.service";
 import type { Conversation } from "../../../domain/entities/conversation";
 import type { Message } from "../../../domain/entities/message";
 
-function createMockRepository(): IConversationRepository {
+function createMockConversationRepo(): IConversationRepository {
   const store = new Map<string, Conversation>();
   return {
     async save(conversation: Conversation) {
@@ -31,12 +31,22 @@ function createMockRepository(): IConversationRepository {
       conv.updatedAt = new Date();
       return conv;
     },
-    async addMessage(conversationId: string, messages: Message[]) {
-      const conv = store.get(conversationId);
-      if (!conv) return null;
-      conv.messages.push(...messages);
-      conv.updatedAt = new Date();
-      return conv;
+    async touch() {},
+  };
+}
+
+function createMockMessageRepo(): IMessageRepository {
+  const messages: Message[] = [];
+  return {
+    async addMessages(msgs: Message[]) {
+      messages.push(...msgs);
+    },
+    async findByConversationId(conversationId: string, offset: number, limit: number) {
+      const filtered = messages.filter((m) => m.conversationId === conversationId);
+      return filtered.slice(offset, offset + limit);
+    },
+    async countByConversationId(conversationId: string) {
+      return messages.filter((m) => m.conversationId === conversationId).length;
     },
   };
 }
@@ -48,8 +58,9 @@ const mockAi: IAiService = {
 };
 
 function createTestApp() {
-  const repo = createMockRepository();
-  const service = new ConversationService(repo, mockAi);
+  const convRepo = createMockConversationRepo();
+  const msgRepo = createMockMessageRepo();
+  const service = new ConversationService(convRepo, msgRepo, mockAi);
   const app = new Hono();
   app.onError(errorHandler);
   app.route("/v1/conversations", createConversationController(service));
@@ -103,7 +114,6 @@ describe("Conversation Controller", () => {
 
   describe("GET /v1/conversations", () => {
     it("should return paginated list", async () => {
-      // Create some conversations
       await app.request("/v1/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,7 +145,7 @@ describe("Conversation Controller", () => {
   });
 
   describe("GET /v1/conversations/:id", () => {
-    it("should return conversation with messages", async () => {
+    it("should return conversation metadata", async () => {
       const createRes = await app.request("/v1/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -149,7 +159,6 @@ describe("Conversation Controller", () => {
       const body = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.title).toBe("My Chat");
-      expect(body.data.messages).toBeArray();
     });
 
     it("should return 404 for non-existent id", async () => {
@@ -159,6 +168,54 @@ describe("Conversation Controller", () => {
       const body = await res.json();
       expect(body.success).toBe(false);
       expect(body.error.code).toBe(404);
+    });
+  });
+
+  describe("GET /v1/conversations/:id/messages", () => {
+    it("should return paginated messages", async () => {
+      const createRes = await app.request("/v1/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Chat" }),
+      });
+      const { data: conv } = await createRes.json();
+
+      // Send a message first
+      await app.request(`/v1/conversations/${conv.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "Hello" }),
+      });
+
+      const res = await app.request(`/v1/conversations/${conv.id}/messages?offset=0&limit=20`);
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.data).toBeArray();
+      expect(body.data).toHaveLength(2); // user + assistant
+      expect(body.pagination.total).toBe(2);
+    });
+
+    it("should return 404 for non-existent conversation", async () => {
+      const res = await app.request("/v1/conversations/fake-id/messages");
+      expect(res.status).toBe(404);
+    });
+
+    it("should use default pagination", async () => {
+      const createRes = await app.request("/v1/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Chat" }),
+      });
+      const { data: conv } = await createRes.json();
+
+      const res = await app.request(`/v1/conversations/${conv.id}/messages`);
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.pagination.offset).toBe(0);
+      expect(body.pagination.limit).toBe(20);
     });
   });
 

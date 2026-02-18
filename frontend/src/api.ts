@@ -15,7 +15,6 @@ interface PaginatedApiResponse<T> {
 export interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +45,12 @@ export async function listConversations(offset = 0, limit = 20) {
 
 export async function getConversation(id: string) {
   return request<ApiResponse<Conversation>>(`${BASE}/conversations/${id}`);
+}
+
+export async function getMessages(conversationId: string, offset = 0, limit = 20) {
+  return request<PaginatedApiResponse<Message>>(
+    `${BASE}/conversations/${conversationId}/messages?offset=${offset}&limit=${limit}`,
+  );
 }
 
 export async function createConversation(title?: string) {

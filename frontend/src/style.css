@@ -298,6 +298,14 @@ body {
   40% { transform: scale(1); }
 }
 
+/* Load more indicator */
+.load-more-indicator {
+  text-align: center;
+  padding: 12px;
+  color: #737373;
+  font-size: 0.8rem;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

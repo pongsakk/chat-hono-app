@@ -1,9 +1,12 @@
 import type { Collection, Db } from "mongodb";
 import type { Conversation } from "../../domain/entities/conversation";
 import type { Message } from "../../domain/entities/message";
-import type { IConversationRepository } from "../../domain/repositories/conversation.repository";
+import type {
+  IConversationRepository,
+  IMessageRepository,
+} from "../../domain/repositories/conversation.repository";
 
-export class MongoDbRepository implements IConversationRepository {
+export class MongoConversationRepository implements IConversationRepository {
   private conversations: Collection<Conversation>;
 
   constructor(db: Db) {
@@ -21,7 +24,7 @@ export class MongoDbRepository implements IConversationRepository {
 
   async findAll(offset: number, limit: number): Promise<Conversation[]> {
     return this.conversations
-      .find({}, { projection: { _id: 0, messages: 0 } })
+      .find({}, { projection: { _id: 0 } })
       .sort({ updatedAt: -1 })
       .skip(offset)
       .limit(limit)
@@ -41,15 +44,37 @@ export class MongoDbRepository implements IConversationRepository {
     return result ?? null;
   }
 
-  async addMessage(conversationId: string, messages: Message[]): Promise<Conversation | null> {
-    const result = await this.conversations.findOneAndUpdate(
-      { id: conversationId },
-      {
-        $push: { messages: { $each: messages } },
-        $set: { updatedAt: new Date() },
-      },
-      { returnDocument: "after", projection: { _id: 0 } },
+  async touch(id: string): Promise<void> {
+    await this.conversations.updateOne(
+      { id },
+      { $set: { updatedAt: new Date() } },
     );
-    return result ?? null;
+  }
+}
+
+export class MongoMessageRepository implements IMessageRepository {
+  private messages: Collection<Message>;
+
+  constructor(db: Db) {
+    this.messages = db.collection<Message>("messages");
+  }
+
+  async addMessages(messages: Message[]): Promise<void> {
+    if (messages.length > 0) {
+      await this.messages.insertMany(messages.map((m) => ({ ...m })));
+    }
+  }
+
+  async findByConversationId(conversationId: string, offset: number, limit: number): Promise<Message[]> {
+    return this.messages
+      .find({ conversationId }, { projection: { _id: 0 } })
+      .sort({ createdAt: 1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray();
+  }
+
+  async countByConversationId(conversationId: string): Promise<number> {
+    return this.messages.countDocuments({ conversationId });
   }
 }

@@ -1,6 +1,6 @@
 import {
   listConversations,
-  getConversation,
+  getMessages,
   createConversation,
   sendMessage,
   renameConversation,
@@ -23,12 +23,21 @@ let conversations: Conversation[] = [];
 let activeConversationId: string | null = null;
 let activeMessages: Message[] = [];
 
+// Pagination state for infinite scroll
+let messageTotal = 0;
+let messageOffset = 0;
+let isLoadingMore = false;
+const PAGE_SIZE = 20;
+
 // --- Render Functions ---
 
 function renderConversationList(filter = "") {
   const filtered = filter
     ? conversations.filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
-    : conversations;
+    : [...conversations];
+
+  // Sort by updatedAt descending (newest first)
+  filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   conversationList.innerHTML = filtered
     .map((c) => {
@@ -66,7 +75,12 @@ function renderMessages() {
     return;
   }
 
-  messagesDiv.innerHTML = activeMessages
+  // Show loading indicator at top if there are more messages to load
+  const loadingHtml = messageOffset > 0
+    ? `<div class="load-more-indicator" id="load-more">Loading older messages...</div>`
+    : "";
+
+  messagesDiv.innerHTML = loadingHtml + activeMessages
     .map((m) => {
       const time = new Date(m.createdAt).toLocaleTimeString("th-TH", {
         hour: "2-digit",
@@ -80,8 +94,6 @@ function renderMessages() {
       `;
     })
     .join("");
-
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function showTypingIndicator() {
@@ -96,6 +108,48 @@ function showTypingIndicator() {
 function hideTypingIndicator() {
   document.getElementById("typing")?.remove();
 }
+
+// --- Infinite Scroll ---
+
+async function loadOlderMessages() {
+  if (isLoadingMore || messageOffset <= 0 || !activeConversationId) return;
+
+  isLoadingMore = true;
+
+  // Calculate how many to load (up to PAGE_SIZE, but not below offset 0)
+  const limit = Math.min(PAGE_SIZE, messageOffset);
+  const newOffset = messageOffset - limit;
+
+  try {
+    const res = await getMessages(activeConversationId, newOffset, limit);
+    const olderMessages = res.data || [];
+
+    if (olderMessages.length > 0) {
+      // Save current scroll height to restore position after prepend
+      const prevScrollHeight = messagesDiv.scrollHeight;
+
+      // Prepend older messages
+      activeMessages = [...olderMessages, ...activeMessages];
+      messageOffset = newOffset;
+      renderMessages();
+
+      // Restore scroll position so user doesn't jump
+      const newScrollHeight = messagesDiv.scrollHeight;
+      messagesDiv.scrollTop = newScrollHeight - prevScrollHeight;
+    }
+  } catch (err) {
+    console.error("Failed to load older messages", err);
+  } finally {
+    isLoadingMore = false;
+  }
+}
+
+messagesDiv.addEventListener("scroll", () => {
+  // When scrolled near the top (within 50px), load more
+  if (messagesDiv.scrollTop < 50) {
+    loadOlderMessages();
+  }
+});
 
 // --- Actions ---
 
@@ -119,13 +173,28 @@ async function selectConversation(id: string) {
     messageForm.hidden = false;
     renderConversationList(searchInput.value);
 
-    // Fetch full conversation with messages from API
+    // Reset pagination state
+    activeMessages = [];
+    messageTotal = 0;
+    messageOffset = 0;
+    isLoadingMore = false;
+
+    // Fetch latest 20 messages (from the end)
     try {
-      const res = await getConversation(id);
-      if (res.data) {
-        activeMessages = res.data.messages || [];
-        renderMessages();
+      // First get total count
+      const firstRes = await getMessages(id, 0, 1);
+      messageTotal = firstRes.pagination.total;
+
+      if (messageTotal > 0) {
+        // Calculate offset for the latest PAGE_SIZE messages
+        messageOffset = Math.max(0, messageTotal - PAGE_SIZE);
+        const res = await getMessages(id, messageOffset, PAGE_SIZE);
+        activeMessages = res.data || [];
       }
+
+      renderMessages();
+      // Scroll to bottom to show latest messages
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     } catch (err) {
       console.error("Failed to load conversation messages", err);
       activeMessages = [];
@@ -167,6 +236,7 @@ async function handleSendMessage(e: Event) {
   };
   activeMessages.push(tempUserMsg);
   renderMessages();
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
   showTypingIndicator();
 
   try {
@@ -178,12 +248,13 @@ async function handleSendMessage(e: Event) {
       activeMessages.pop(); // remove temp
       activeMessages.push(res.data.userMessage);
       activeMessages.push(res.data.assistantMessage);
+      messageTotal += 2;
       renderMessages();
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-      // Update conversation in sidebar
+      // Update conversation timestamp in sidebar
       const conv = conversations.find((c) => c.id === activeConversationId);
       if (conv) {
-        conv.messages = activeMessages;
         conv.updatedAt = new Date().toISOString();
       }
       renderConversationList(searchInput.value);

@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { ConversationService } from "../conversation.service";
-import type { IConversationRepository } from "../../repositories/conversation.repository";
+import type { IConversationRepository, IMessageRepository } from "../../repositories/conversation.repository";
 import type { IAiService } from "../ai.service";
 import type { Conversation } from "../../entities/conversation";
 import type { Message } from "../../entities/message";
 
-// Mock repository
-function createMockRepository(): IConversationRepository {
+// Mock conversation repository
+function createMockConversationRepo(): IConversationRepository {
   const store = new Map<string, Conversation>();
 
   return {
@@ -30,12 +30,24 @@ function createMockRepository(): IConversationRepository {
       conv.updatedAt = new Date();
       return conv;
     },
-    async addMessage(conversationId: string, messages: Message[]) {
-      const conv = store.get(conversationId);
-      if (!conv) return null;
-      conv.messages.push(...messages);
-      conv.updatedAt = new Date();
-      return conv;
+    async touch() {},
+  };
+}
+
+// Mock message repository
+function createMockMessageRepo(): IMessageRepository {
+  const messages: Message[] = [];
+
+  return {
+    async addMessages(msgs: Message[]) {
+      messages.push(...msgs);
+    },
+    async findByConversationId(conversationId: string, offset: number, limit: number) {
+      const filtered = messages.filter((m) => m.conversationId === conversationId);
+      return filtered.slice(offset, offset + limit);
+    },
+    async countByConversationId(conversationId: string) {
+      return messages.filter((m) => m.conversationId === conversationId).length;
     },
   };
 }
@@ -49,11 +61,13 @@ const mockAiService: IAiService = {
 
 describe("ConversationService", () => {
   let service: ConversationService;
-  let repository: IConversationRepository;
+  let conversationRepo: IConversationRepository;
+  let messageRepo: IMessageRepository;
 
   beforeEach(() => {
-    repository = createMockRepository();
-    service = new ConversationService(repository, mockAiService);
+    conversationRepo = createMockConversationRepo();
+    messageRepo = createMockMessageRepo();
+    service = new ConversationService(conversationRepo, messageRepo, mockAiService);
   });
 
   describe("create", () => {
@@ -61,7 +75,6 @@ describe("ConversationService", () => {
       const conv = await service.create("Test Chat");
       expect(conv.title).toBe("Test Chat");
       expect(conv.id).toBeString();
-      expect(conv.messages).toEqual([]);
     });
 
     it("should persist the conversation", async () => {
@@ -106,6 +119,35 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("getMessages", () => {
+    it("should return paginated messages for a conversation", async () => {
+      const conv = await service.create("Chat");
+      await service.sendMessage(conv.id, "Hello");
+      await service.sendMessage(conv.id, "World");
+
+      const result = await service.getMessages(conv.id, 0, 20);
+      expect(result.data).toHaveLength(4); // 2 user + 2 assistant
+      expect(result.pagination.total).toBe(4);
+    });
+
+    it("should respect pagination offset and limit", async () => {
+      const conv = await service.create("Chat");
+      await service.sendMessage(conv.id, "Msg1");
+      await service.sendMessage(conv.id, "Msg2");
+
+      const result = await service.getMessages(conv.id, 0, 2);
+      expect(result.data).toHaveLength(2);
+      expect(result.pagination.total).toBe(4);
+    });
+
+    it("should return empty for conversation with no messages", async () => {
+      const conv = await service.create("Empty");
+      const result = await service.getMessages(conv.id, 0, 20);
+      expect(result.data).toHaveLength(0);
+      expect(result.pagination.total).toBe(0);
+    });
+  });
+
   describe("rename", () => {
     it("should rename a conversation", async () => {
       const conv = await service.create("Old Title");
@@ -131,14 +173,14 @@ describe("ConversationService", () => {
       expect(result.assistantMessage.content).toContain("Mock reply to: Hello");
     });
 
-    it("should persist both messages to the conversation", async () => {
+    it("should persist both messages", async () => {
       const conv = await service.create("Chat");
       await service.sendMessage(conv.id, "Hi");
 
-      const updated = await service.getById(conv.id);
-      expect(updated!.messages).toHaveLength(2);
-      expect(updated!.messages[0]!.role).toBe("user");
-      expect(updated!.messages[1]!.role).toBe("assistant");
+      const messages = await service.getMessages(conv.id, 0, 20);
+      expect(messages.data).toHaveLength(2);
+      expect(messages.data[0]!.role).toBe("user");
+      expect(messages.data[1]!.role).toBe("assistant");
     });
 
     it("should set correct conversationId on messages", async () => {

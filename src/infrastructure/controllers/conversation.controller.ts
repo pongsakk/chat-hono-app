@@ -25,7 +25,7 @@ export function createConversationController(service: ConversationService) {
     return c.json({ success: true, ...result });
   });
 
-  // GET /v1/conversations/:id — get conversation with messages
+  // GET /v1/conversations/:id — get conversation metadata
   controller.get("/:id", async (c) => {
     const id = c.req.param("id");
     const conversation = await service.getById(id);
@@ -33,6 +33,24 @@ export function createConversationController(service: ConversationService) {
       throw new NotFoundError(`Conversation '${id}' not found`);
     }
     return c.json({ success: true, data: conversation });
+  });
+
+  // GET /v1/conversations/:id/messages — get messages with pagination
+  controller.get("/:id/messages", async (c) => {
+    const id = c.req.param("id");
+
+    const conversation = await service.getById(id);
+    if (!conversation) {
+      throw new NotFoundError(`Conversation '${id}' not found`);
+    }
+
+    const { offset, limit } = PaginationQuerySchema.parse({
+      offset: c.req.query("offset"),
+      limit: c.req.query("limit"),
+    });
+
+    const result = await service.getMessages(id, offset, limit);
+    return c.json({ success: true, ...result });
   });
 
   // POST /v1/conversations — create new conversation

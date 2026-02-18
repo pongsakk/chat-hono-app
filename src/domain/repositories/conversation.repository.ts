@@ -7,5 +7,11 @@ export interface IConversationRepository {
   findAll(offset: number, limit: number): Promise<Conversation[]>;
   count(): Promise<number>;
   updateTitle(id: string, title: string): Promise<Conversation | null>;
-  addMessage(conversationId: string, messages: Message[]): Promise<Conversation | null>;
+  touch(id: string): Promise<void>;
+}
+
+export interface IMessageRepository {
+  addMessages(messages: Message[]): Promise<void>;
+  findByConversationId(conversationId: string, offset: number, limit: number): Promise<Message[]>;
+  countByConversationId(conversationId: string): Promise<number>;
 }
