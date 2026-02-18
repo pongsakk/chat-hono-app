@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A.E.G.I.S. - AI Chat</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h1>AI Chat</h1>
+        <button id="new-chat-btn" title="New Chat">+</button>
+      </div>
+      <input type="text" id="search-input" placeholder="Search..." />
+      <ul id="conversation-list"></ul>
+    </aside>
+
+    <!-- Chat Area -->
+    <main id="chat-area">
+      <div id="chat-header">
+        <span id="chat-title">Select a conversation</span>
+        <button id="rename-btn" title="Rename" hidden>Rename</button>
+      </div>
+      <div id="messages"></div>
+      <form id="message-form" hidden>
+        <input type="text" id="message-input" placeholder="Send a message..." autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

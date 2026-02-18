@@ -1,8 +1,8 @@
+import type { PaginatedResponse } from "../dtos/conversation.dto";
 import type { Conversation } from "../entities/conversation";
 import type { Message } from "../entities/message";
 import type { IConversationRepository } from "../repositories/conversation.repository";
 import type { IAiService } from "./ai.service";
-import type { PaginatedResponse } from "../dtos/conversation.dto";
 
 export class ConversationService {
   constructor(
@@ -45,7 +45,6 @@ export class ConversationService {
       content,
       createdAt: new Date(),
     };
-    await this.repository.addMessage(userMessage);
 
     const aiReply = await this.aiService.generateReply(content);
     const assistantMessage: Message = {
@@ -55,7 +54,11 @@ export class ConversationService {
       content: aiReply,
       createdAt: new Date(),
     };
-    await this.repository.addMessage(assistantMessage);
+    const updatedConversation = [
+      userMessage,
+      assistantMessage,
+    ]
+    await this.repository.addMessage(conversationId, updatedConversation);
 
     return { userMessage, assistantMessage };
   }

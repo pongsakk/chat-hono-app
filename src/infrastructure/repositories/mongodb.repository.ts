@@ -41,11 +41,11 @@ export class MongoDbRepository implements IConversationRepository {
     return result ?? null;
   }
 
-  async addMessage(message: Message): Promise<Conversation | null> {
+  async addMessage(conversationId: string, messages: Message[]): Promise<Conversation | null> {
     const result = await this.conversations.findOneAndUpdate(
-      { id: message.conversationId },
+      { id: conversationId },
       {
-        $push: { messages: message },
+        $push: { messages: { $each: messages } },
         $set: { updatedAt: new Date() },
       },
       { returnDocument: "after", projection: { _id: 0 } },
