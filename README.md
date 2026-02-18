@@ -1,4 +1,4 @@
-# A.E.G.I.S. (Automated Engine for Generative Interaction Systems)
+# A.E.G.I.S. 
 
 Chat application built with Bun + Hono + MongoDB + Vite.
 
@@ -91,10 +91,6 @@ MONGO_URI=mongodb://localhost:27017/chat-app bun run dev
 cd frontend
 bun run dev
 ```
-
-- Backend API: http://localhost:3000
-- Frontend UI: http://localhost:5173
-
 ## API Endpoints
 
 | Method | Endpoint                             | Description              |
